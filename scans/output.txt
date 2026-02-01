@@ -1,0 +1,28 @@
+Starting Nmap 7.98 ( https://nmap.org ) at 2026-02-01 15:07 +0530
+Nmap scan report for 10.70.55.117
+Host is up (0.00011s latency).
+
+PORT     STATE  SERVICE       VERSION
+21/tcp   closed ftp
+22/tcp   closed ssh
+23/tcp   closed telnet
+25/tcp   closed smtp
+53/tcp   closed domain
+80/tcp   closed http
+110/tcp  closed pop3
+111/tcp  closed rpcbind
+135/tcp  closed msrpc
+139/tcp  closed netbios-ssn
+143/tcp  closed imap
+443/tcp  closed https
+445/tcp  closed microsoft-ds
+993/tcp  closed imaps
+995/tcp  closed pop3s
+1723/tcp closed pptp
+3306/tcp closed mysql
+3389/tcp closed ms-wbt-server
+5900/tcp closed vnc
+8080/tcp closed http-proxy
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 256 IP addresses (1 host up) scanned in 12.36 seconds
