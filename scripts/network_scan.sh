@@ -22,4 +22,4 @@ else
 fi
 
 #sacns the SUBNET and stores the output into a file
-nmap -sn $SUBNET > ../scans/output.txt
+nmap -sV --top-ports 20 $SUBNET > ../scans/output.txt
