@@ -1,14 +1,42 @@
 package com.homeaudit;
 
 import java.io.*;
+import java.net.SocketException;
 import java.util.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+
+import static com.homeaudit.SubnetDetector.*;
 
 public class NetworkParser {
     public static void main(String[] args) throws Exception 
     {
         System.out.println("Home Network Audit v0.1 — starting up");
+
+        try {
+            System.out.println("Detected local subnets:");
+            List<SubnetDetector.Subnet> detected = discoverSubnets();
+
+            SubnetDetector.Subnet targetScanner = null;
+            for (SubnetDetector.Subnet s : detected) {
+                System.out.println("  " + s);
+
+                // Pick the first private subnet found as our primary scanner target
+                if (targetScanner == null && isPrivateAddress(s.ip())) {
+                    targetScanner = s;
+                }
+            }
+
+            System.out.println("\n-----------------------------------------");
+            if (targetScanner != null) {
+                System.out.println("Scanning target: " + targetScanner.getNetworkAddress() + "/" + targetScanner.prefixLength());
+            } else {
+                System.out.println("Scanning target: None found (No private subnets detected).");
+            }
+
+        } catch (SocketException e) {
+            System.err.println("Error accessing network interfaces: " + e.getMessage());
+        }
     }
 }
 
