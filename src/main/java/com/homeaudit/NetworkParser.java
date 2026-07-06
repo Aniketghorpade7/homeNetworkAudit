@@ -1,57 +1,14 @@
+package com.homeaudit;
+
 import java.io.*;
 import java.util.*;
-import java.util.regex.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class NetworkParser {
     public static void main(String[] args) throws Exception 
     {
-        ProcessBuilder pb = new ProcessBuilder(
-            "bash",
-            "../scripts/network_scan.sh"
-        );
-
-        pb.inheritIO();
-
-        Process process = pb.start();
-        int exitCode = process.waitFor();
-
-        System.out.println("Script exited with code: " + exitCode);
-        
-    
-        BufferedReader read = new BufferedReader(new FileReader("../scans/output.txt"));
-        HashMap<String, Device> networkInventory = new HashMap<>();
-        
-        Pattern ipPattern = Pattern.compile("Nmap scan report for (\\d{1,3}(\\.\\d{1,3}){3})");
-        Pattern portPattern = Pattern.compile("(\\d+/tcp)\\s+open\\s+(\\S+)\\s*(.*)");
-        Pattern osPattern = Pattern.compile("Service Info: OS: ([^;]+)");
-
-        String line;
-        Device currentDevice = null;
-
-        while ((line = read.readLine()) != null) {
-            Matcher ipMatcher = ipPattern.matcher(line);
-            Matcher portMatcher = portPattern.matcher(line);
-            Matcher osMatcher = osPattern.matcher(line);
-
-            if (ipMatcher.find()) {
-                currentDevice = new Device(ipMatcher.group(1));
-                networkInventory.put(currentDevice.ip, currentDevice);
-            } 
-            else if (portMatcher.find() && currentDevice != null) {
-                // We capture port, service, and the version string
-                String info = portMatcher.group(1) + " " + portMatcher.group(2) + " (" + portMatcher.group(3) + ")";
-                currentDevice.addPort(info);
-            }
-            else if (osMatcher.find() && currentDevice != null) {
-                // This updates the OS field directly from the Service Info line
-                currentDevice.os = osMatcher.group(1).trim();
-            }
-        }
-        read.close();
-
-        ReportGenerator.saveMarkdown(networkInventory);
+        System.out.println("Home Network Audit v0.1 — starting up");
     }
 }
 
