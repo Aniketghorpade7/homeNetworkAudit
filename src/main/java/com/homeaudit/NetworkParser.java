@@ -9,33 +9,37 @@ import java.time.format.DateTimeFormatter;
 import static com.homeaudit.SubnetDetector.*;
 
 public class NetworkParser {
-    public static void main(String[] args) throws Exception 
-    {
-        System.out.println("Home Network Audit v0.1 — starting up");
-
+    public static void main(String[] args) {
         try {
-            System.out.println("Detected local subnets:");
-            List<SubnetDetector.Subnet> detected = discoverSubnets();
+            // Find our local network configurations
+            List<SubnetDetector.Subnet> subnets = SubnetDetector.discoverSubnets();
+            SubnetDetector.Subnet preferredTarget = null;
 
-            SubnetDetector.Subnet targetScanner = null;
-            for (SubnetDetector.Subnet s : detected) {
-                System.out.println("  " + s);
-
-                // Pick the first private subnet found as our primary scanner target
-                if (targetScanner == null && isPrivateAddress(s.ip())) {
-                    targetScanner = s;
+            for (SubnetDetector.Subnet s : subnets) {
+                if (SubnetDetector.isPrivateAddress(s.ip())) {
+                    preferredTarget = s;
+                    break;
                 }
             }
 
-            System.out.println("\n-----------------------------------------");
-            if (targetScanner != null) {
-                System.out.println("Scanning target: " + targetScanner.getNetworkAddress() + "/" + targetScanner.prefixLength());
-            } else {
-                System.out.println("Scanning target: None found (No private subnets detected).");
+            if (preferredTarget == null) {
+                System.out.println("No active private subnet discovered to target.");
+                return;
             }
 
-        } catch (SocketException e) {
-            System.err.println("Error accessing network interfaces: " + e.getMessage());
+            // Execute the concurrent discovery tool
+            long startTime = System.currentTimeMillis();
+            List<String> activeHosts = HostDiscovery.discoverLiveHosts(preferredTarget);
+            long endTime = System.currentTimeMillis();
+
+            System.out.println("\nLive hosts (" + activeHosts.size() + "):");
+            for (String host : activeHosts) {
+                System.out.println("  " + host);
+            }
+            System.out.printf("%nScan finished in %.2f seconds.%n", (endTime - startTime) / 1000.0);
+
+        } catch (Exception e) {
+            System.err.println("Fatal discovery error: " + e.getMessage());
         }
     }
 }
