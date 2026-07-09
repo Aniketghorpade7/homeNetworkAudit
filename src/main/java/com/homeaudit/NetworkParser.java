@@ -1,25 +1,28 @@
 package com.homeaudit;
 
 import java.net.SocketException;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static com.homeaudit.PortScanner.COMMON_PORTS;
 import static com.homeaudit.PortScanner.scanNetwork;
 
 /**
  * Entry point. Runs the scan pipeline — subnet detection → host discovery → port scan →
- * MAC/type enrichment — into a single {@link Device} inventory, then renders it.
- *
- * <p>The inventory is the shared model that the rules engine (Phase 3) and the richer
- * report formats (Phase 4) plug into.
+ * MAC/vendor/type enrichment → rules analysis — into a single {@link Device} inventory,
+ * then emits terminal, Markdown, and JSON reports.
  */
 public class NetworkParser {
 
+    private static final DateTimeFormatter TIMESTAMP =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     public static void main(String[] args) {
         try {
-            // 0. Load the data-driven security knowledge base up front (Task 10 / #5)
+            // 0. Load the data-driven security knowledge base (Task 10 / #5)
             List<Rule> rules = RuleLoader.load();
             System.out.println("[i] Loaded " + rules.size() + " security rules.");
 
@@ -43,19 +46,27 @@ public class NetworkParser {
             Map<String, List<Integer>> portResults = scanNetwork(liveHosts);
             long endTime = System.currentTimeMillis();
 
-            // 4. Enrichment: MAC address (Task 6) + default gateway for typing (Task 8)
+            // 4. Enrichment: MAC (Task 6) + vendor (Task 7) + gateway/type (Task 8)
             Map<String, String> macByIp = ArpResolver.resolveMacAddresses();
             String gateway = DeviceClassifier.detectGateway();
 
-            // 5. Assemble the single source of truth: the device inventory (Task 9 / #4)
+            // 5. Assemble the device inventory (Task 9 / #4)
             List<Device> inventory = buildInventory(liveHosts, portResults, macByIp, gateway);
 
-            // 6. Analyze the inventory against the security knowledge base (Task 11 / #6)
+            // 6. Analyze against the security knowledge base (Task 11 / #6)
             new RulesEngine(rules).analyzeAll(inventory);
 
-            // 7. Render (minimal console view; richer reporters arrive in Phase 4)
-            renderInventory(inventory);
-            System.out.println("\nOverall network posture: " + RulesEngine.networkPosture(inventory));
+            // 7. Build the report model and emit every format (Phase 4)
+            ScanResult result = new ScanResult(
+                    scanTarget.getNetworkAddress() + "/" + scanTarget.prefixLength(),
+                    LocalDateTime.now().format(TIMESTAMP),
+                    inventory.size(),
+                    RulesEngine.networkPosture(inventory),
+                    inventory);
+
+            TerminalReport.print(result);   // Task 12 / #7
+            writeReports(result);           // Markdown (Task 13 / #8) + JSON (Task 14 / #9)
+
             System.out.printf("%nScan finished in %.2f seconds.%n", (endTime - startTime) / 1000.0);
 
         } catch (Exception e) {
@@ -95,25 +106,18 @@ public class NetworkParser {
         return inventory;
     }
 
-    /** Minimal console rendering of the inventory (superseded by Phase 4 reporters). */
-    private static void renderInventory(List<Device> inventory) {
-        for (Device device : inventory) {
-            String mac = device.mac() != null ? device.mac() : "no ARP entry (self/unresolved)";
-            String vendor = device.vendor() != null ? " · " + device.vendor() : "";
-            System.out.printf("%s   [%s%s]   %s   (risk: %s)%n",
-                    device.ip(), mac, vendor, device.type(), device.highestSeverity());
+    /** Writes the Markdown + JSON reports to ./reports/ and prints their paths. */
+    private static void writeReports(ScanResult result) {
+        Path dir = Path.of("reports");
+        long timestamp = System.currentTimeMillis();
+        Path markdown = dir.resolve("Network_Audit_" + timestamp + ".md");
+        Path json = dir.resolve("Network_Audit_" + timestamp + ".json");
 
-            if (device.openPorts().isEmpty()) {
-                System.out.println("  (no common ports open)");
-            } else {
-                device.openPorts().forEach(port ->
-                        System.out.printf("  %-8s %s%n", port + "/tcp", COMMON_PORTS.getOrDefault(port, "unknown")));
-            }
+        MarkdownReport.write(result, markdown);
+        JsonReport.write(result, json);
 
-            for (Finding finding : device.findings()) {
-                System.out.printf("    ! [%s] %s%n", finding.severity(), finding.title());
-                System.out.printf("        fix: %s%n", finding.remediation());
-            }
-        }
+        System.out.println("\nReports written:");
+        System.out.println("  " + markdown.toAbsolutePath());
+        System.out.println("  " + json.toAbsolutePath());
     }
 }

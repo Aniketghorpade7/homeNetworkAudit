@@ -9,3 +9,7 @@ out/
 
 # OS
 .DS_Store
+
+# Generated audit reports (regenerated on every run)
+reports/*.md
+reports/*.json
