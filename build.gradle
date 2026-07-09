@@ -7,6 +7,9 @@ repositories {
 }
 
 dependencies {
+    // Gson — parses the data-driven rules.json knowledge base (and, later, JSON output)
+    implementation 'com.google.code.gson:gson:2.11.0'
+
     // JUnit 5 — set up now so Phase 6 (tests) is ready to go
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'

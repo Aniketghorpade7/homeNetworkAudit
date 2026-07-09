@@ -19,6 +19,10 @@ public class NetworkParser {
 
     public static void main(String[] args) {
         try {
+            // 0. Load the data-driven security knowledge base up front (Task 10 / #5)
+            List<Rule> rules = RuleLoader.load();
+            System.out.println("[i] Loaded " + rules.size() + " security rules.");
+
             // 1. Detect the local subnet to scan (Task 3)
             SubnetDetector.Subnet scanTarget = selectScanTarget();
             if (scanTarget == null) {
