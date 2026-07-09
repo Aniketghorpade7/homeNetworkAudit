@@ -46,11 +46,16 @@ public class NetworkParser {
             // 4. Resolve MAC addresses from the (warm) OS ARP cache (Task 6 / #1)
             Map<String, String> macByIp = ArpResolver.resolveMacAddresses();
 
-            // 5. Output Render Engine
+            // 5. Detect the default gateway so we can label the router (Task 8 / #3)
+            String gateway = DeviceClassifier.detectGateway();
+
+            // 6. Output Render Engine
             for (String host : liveHosts) {
-                String mac = macByIp.getOrDefault(host, "(no ARP entry — self/unresolved)");
-                System.out.printf("%s   [%s]%n", host, mac);
                 List<Integer> openPorts = results.get(host);
+                String mac = macByIp.getOrDefault(host, "no ARP entry (self/unresolved)");
+                String type = DeviceClassifier.classify(host, openPorts, gateway);
+
+                System.out.printf("%s   [%s]   %s%n", host, mac, type);
 
                 if (openPorts.isEmpty()) {
                     System.out.println("  (no common ports open)");
