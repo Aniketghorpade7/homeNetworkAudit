@@ -86,6 +86,9 @@ public class NetworkParser {
             Device device = new Device(host);
             openPorts.stream().sorted().forEach(device::addPort);
             device.setMac(macByIp.get(host));
+            if (device.mac() != null) {
+                device.setVendor(OuiVendorLookup.lookup(device.mac()));
+            }
             device.setType(DeviceClassifier.classify(host, openPorts, gateway));
             inventory.add(device);
         }
@@ -96,8 +99,9 @@ public class NetworkParser {
     private static void renderInventory(List<Device> inventory) {
         for (Device device : inventory) {
             String mac = device.mac() != null ? device.mac() : "no ARP entry (self/unresolved)";
-            System.out.printf("%s   [%s]   %s   (risk: %s)%n",
-                    device.ip(), mac, device.type(), device.highestSeverity());
+            String vendor = device.vendor() != null ? " · " + device.vendor() : "";
+            System.out.printf("%s   [%s%s]   %s   (risk: %s)%n",
+                    device.ip(), mac, vendor, device.type(), device.highestSeverity());
 
             if (device.openPorts().isEmpty()) {
                 System.out.println("  (no common ports open)");
