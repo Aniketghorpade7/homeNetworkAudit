@@ -43,9 +43,13 @@ public class NetworkParser {
             Map<String, List<Integer>> results = scanNetwork(liveHosts);
             long endTime = System.currentTimeMillis();
 
-            // 4. Output Render Engine
+            // 4. Resolve MAC addresses from the (warm) OS ARP cache (Task 6 / #1)
+            Map<String, String> macByIp = ArpResolver.resolveMacAddresses();
+
+            // 5. Output Render Engine
             for (String host : liveHosts) {
-                System.out.println(host);
+                String mac = macByIp.getOrDefault(host, "(no ARP entry — self/unresolved)");
+                System.out.printf("%s   [%s]%n", host, mac);
                 List<Integer> openPorts = results.get(host);
 
                 if (openPorts.isEmpty()) {
