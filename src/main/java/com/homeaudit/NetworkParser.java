@@ -50,9 +50,13 @@ public class NetworkParser {
             // 5. Assemble the single source of truth: the device inventory (Task 9 / #4)
             List<Device> inventory = buildInventory(liveHosts, portResults, macByIp, gateway);
 
-            // 6. Render (minimal console view; richer reporters arrive in Phase 4)
+            // 6. Analyze the inventory against the security knowledge base (Task 11 / #6)
+            new RulesEngine(rules).analyzeAll(inventory);
+
+            // 7. Render (minimal console view; richer reporters arrive in Phase 4)
             renderInventory(inventory);
-            System.out.printf("%nPort scan finished in %.2f seconds.%n", (endTime - startTime) / 1000.0);
+            System.out.println("\nOverall network posture: " + RulesEngine.networkPosture(inventory));
+            System.out.printf("%nScan finished in %.2f seconds.%n", (endTime - startTime) / 1000.0);
 
         } catch (Exception e) {
             System.err.println("Execution pipeline failure: " + e.getMessage());
@@ -92,13 +96,19 @@ public class NetworkParser {
     private static void renderInventory(List<Device> inventory) {
         for (Device device : inventory) {
             String mac = device.mac() != null ? device.mac() : "no ARP entry (self/unresolved)";
-            System.out.printf("%s   [%s]   %s%n", device.ip(), mac, device.type());
+            System.out.printf("%s   [%s]   %s   (risk: %s)%n",
+                    device.ip(), mac, device.type(), device.highestSeverity());
 
             if (device.openPorts().isEmpty()) {
                 System.out.println("  (no common ports open)");
             } else {
                 device.openPorts().forEach(port ->
                         System.out.printf("  %-8s %s%n", port + "/tcp", COMMON_PORTS.getOrDefault(port, "unknown")));
+            }
+
+            for (Finding finding : device.findings()) {
+                System.out.printf("    ! [%s] %s%n", finding.severity(), finding.title());
+                System.out.printf("        fix: %s%n", finding.remediation());
             }
         }
     }
