@@ -6,43 +6,69 @@ import java.util.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+import static com.homeaudit.PortScanner.COMMON_PORTS;
+import static com.homeaudit.PortScanner.scanNetwork;
 import static com.homeaudit.SubnetDetector.*;
 
 public class NetworkParser {
+
     public static void main(String[] args) {
         try {
-            // Find our local network configurations
+            // 1. Uncover Subnet Map (Task 3)
             List<SubnetDetector.Subnet> subnets = SubnetDetector.discoverSubnets();
-            SubnetDetector.Subnet preferredTarget = null;
-
+            SubnetDetector.Subnet scanTarget = null;
             for (SubnetDetector.Subnet s : subnets) {
                 if (SubnetDetector.isPrivateAddress(s.ip())) {
-                    preferredTarget = s;
+                    scanTarget = s;
                     break;
                 }
             }
 
-            if (preferredTarget == null) {
-                System.out.println("No active private subnet discovered to target.");
+            if (scanTarget == null) {
+                System.out.println("Execution aborted: Could not map local private interfaces.");
                 return;
             }
 
-            // Execute the concurrent discovery tool
+            // 2. Discover Active Hosts via ICMP/Echo Sweep (Task 4)
+            List<String> liveHosts = HostDiscovery.discoverLiveHosts(scanTarget);
+            if (liveHosts.isEmpty()) {
+                System.out.println("No responsive hosts found on the network.");
+                return;
+            }
+
+            System.out.printf("%nFound %d live hosts. Beginning service mapping...%n%n", liveHosts.size());
+
+            // 3. Scan Network Ports via Pure Java Virtual Threads (Task 5)
             long startTime = System.currentTimeMillis();
-            List<String> activeHosts = HostDiscovery.discoverLiveHosts(preferredTarget);
+            Map<String, List<Integer>> results = scanNetwork(liveHosts);
             long endTime = System.currentTimeMillis();
 
-            System.out.println("\nLive hosts (" + activeHosts.size() + "):");
-            for (String host : activeHosts) {
-                System.out.println("  " + host);
+            // 4. Output Render Engine
+            for (String host : liveHosts) {
+                System.out.println(host);
+                List<Integer> openPorts = results.get(host);
+
+                if (openPorts.isEmpty()) {
+                    System.out.println("  (no common ports open)");
+                } else {
+                    // Sort numerically for output clarity
+                    openPorts.stream().sorted().forEach(port -> {
+                        String serviceName = COMMON_PORTS.getOrDefault(port, "unknown");
+                        System.out.printf("  %-8s %s%n", port + "/tcp", serviceName);
+                    });
+                }
             }
-            System.out.printf("%nScan finished in %.2f seconds.%n", (endTime - startTime) / 1000.0);
+
+            System.out.printf("%nPort scan finished in %.2f seconds.%n", (endTime - startTime) / 1000.0);
 
         } catch (Exception e) {
-            System.err.println("Fatal discovery error: " + e.getMessage());
+            System.err.println("Execution pipeline failure: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }
+
+
 
 class Device
 {
