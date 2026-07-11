@@ -82,4 +82,35 @@ public class SubnetDetector
         return false;
     }
 
+    /**
+     * Builds a {@link Subnet} from a CIDR string such as {@code "192.168.1.0/24"} — used by
+     * the {@code --subnet} flag. Throws {@link IllegalArgumentException} if malformed.
+     */
+    public static Subnet fromCidr(String cidr) {
+        String[] parts = cidr.split("/");
+        if (parts.length != 2) {
+            throw new IllegalArgumentException("Subnet must be in CIDR form, e.g. 192.168.1.0/24");
+        }
+
+        int prefix;
+        try {
+            prefix = Integer.parseInt(parts[1].trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid prefix length in: " + cidr);
+        }
+        if (prefix < 0 || prefix > 32) {
+            throw new IllegalArgumentException("Prefix length must be 0-32, got: " + prefix);
+        }
+
+        try {
+            InetAddress address = InetAddress.getByName(parts[0].trim());
+            if (!(address instanceof Inet4Address ipv4)) {
+                throw new IllegalArgumentException("Only IPv4 subnets are supported: " + cidr);
+            }
+            return new Subnet("manual", ipv4, prefix);
+        } catch (UnknownHostException e) {
+            throw new IllegalArgumentException("Invalid IPv4 address in: " + cidr);
+        }
+    }
+
 }

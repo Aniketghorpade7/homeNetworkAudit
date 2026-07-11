@@ -21,13 +21,20 @@ public class NetworkParser {
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public static void main(String[] args) {
+        Cli.Options options = Cli.parse(args);
+        if (options == null) {
+            return; // --help / --version / bad args already handled
+        }
+
         try {
             // 0. Load the data-driven security knowledge base (Task 10 / #5)
             List<Rule> rules = RuleLoader.load();
             System.out.println("[i] Loaded " + rules.size() + " security rules.");
 
-            // 1. Detect the local subnet to scan (Task 3)
-            SubnetDetector.Subnet scanTarget = selectScanTarget();
+            // 1. Choose the subnet: --subnet override or auto-detect (Task 15 / #10)
+            SubnetDetector.Subnet scanTarget = (options.subnet() != null)
+                    ? SubnetDetector.fromCidr(options.subnet())
+                    : selectScanTarget();
             if (scanTarget == null) {
                 System.out.println("Execution aborted: Could not map local private interfaces.");
                 return;
@@ -64,11 +71,12 @@ public class NetworkParser {
                     RulesEngine.networkPosture(inventory),
                     inventory);
 
-            TerminalReport.print(result);   // Task 12 / #7
-            writeReports(result);           // Markdown (Task 13 / #8) + JSON (Task 14 / #9)
+            emitReports(result, options);   // terminal (#7) / markdown (#8) / json (#9), per --format
 
             System.out.printf("%nScan finished in %.2f seconds.%n", (endTime - startTime) / 1000.0);
 
+        } catch (IllegalArgumentException e) {
+            System.err.println("Error: " + e.getMessage());
         } catch (Exception e) {
             System.err.println("Execution pipeline failure: " + e.getMessage());
             e.printStackTrace();
@@ -106,18 +114,24 @@ public class NetworkParser {
         return inventory;
     }
 
-    /** Writes the Markdown + JSON reports to ./reports/ and prints their paths. */
-    private static void writeReports(ScanResult result) {
-        Path dir = Path.of("reports");
+    /** Emits the reports selected by {@code --format} to the configured output directory. */
+    private static void emitReports(ScanResult result, Cli.Options options) {
+        Cli.Format format = options.format();
+
+        if (format == Cli.Format.ALL || format == Cli.Format.TERMINAL) {
+            TerminalReport.print(result);
+        }
+
         long timestamp = System.currentTimeMillis();
-        Path markdown = dir.resolve("Network_Audit_" + timestamp + ".md");
-        Path json = dir.resolve("Network_Audit_" + timestamp + ".json");
-
-        MarkdownReport.write(result, markdown);
-        JsonReport.write(result, json);
-
-        System.out.println("\nReports written:");
-        System.out.println("  " + markdown.toAbsolutePath());
-        System.out.println("  " + json.toAbsolutePath());
+        if (format == Cli.Format.ALL || format == Cli.Format.MARKDOWN) {
+            Path markdown = options.outputDir().resolve("Network_Audit_" + timestamp + ".md");
+            MarkdownReport.write(result, markdown);
+            System.out.println("Markdown report: " + markdown.toAbsolutePath());
+        }
+        if (format == Cli.Format.ALL || format == Cli.Format.JSON) {
+            Path json = options.outputDir().resolve("Network_Audit_" + timestamp + ".json");
+            JsonReport.write(result, json);
+            System.out.println("JSON report: " + json.toAbsolutePath());
+        }
     }
 }
