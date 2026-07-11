@@ -30,6 +30,7 @@ public class NetworkParser {
             // 0. Load the data-driven security knowledge base (Task 10 / #5)
             List<Rule> rules = RuleLoader.load();
             System.out.println("[i] Loaded " + rules.size() + " security rules.");
+            System.out.println("[i] Only scan networks you own or are authorized to test.");
 
             // 1. Choose the subnet: --subnet override or auto-detect (Task 15 / #10)
             SubnetDetector.Subnet scanTarget = (options.subnet() != null)
@@ -37,6 +38,17 @@ public class NetworkParser {
                     : selectScanTarget();
             if (scanTarget == null) {
                 System.out.println("Execution aborted: Could not map local private interfaces.");
+                return;
+            }
+
+            // Ethics guard: refuse a foreign subnet unless permission is asserted (Task 16 / #11)
+            if (options.subnet() != null
+                    && !options.iHavePermission()
+                    && !SubnetDetector.isLocalSubnet(scanTarget)) {
+                System.err.println("Refusing to scan " + options.subnet()
+                        + " — it is not one of your own local networks.");
+                System.err.println("Only scan networks you own or are explicitly authorized to test.");
+                System.err.println("If you are authorized, re-run with --i-have-permission.");
                 return;
             }
 

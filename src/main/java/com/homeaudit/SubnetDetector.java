@@ -113,4 +113,32 @@ public class SubnetDetector
         }
     }
 
+    /**
+     * True if the given subnet is one the machine is actually connected to — i.e. one of
+     * our own interface IPs falls within it. Used to gate scanning of foreign networks
+     * behind an explicit permission flag.
+     */
+    public static boolean isLocalSubnet(Subnet requested) throws SocketException {
+        int requestedMask = maskFor(requested.prefixLength());
+        int requestedNetwork = toInt(requested.ip()) & requestedMask;
+
+        for (Subnet mine : discoverSubnets()) {
+            if ((toInt(mine.ip()) & requestedMask) == requestedNetwork) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Packs an IPv4 address into a 32-bit int (with the usual &amp; 0xFF sign-extension guard). */
+    private static int toInt(Inet4Address address) {
+        byte[] b = address.getAddress();
+        return ((b[0] & 0xFF) << 24) | ((b[1] & 0xFF) << 16) | ((b[2] & 0xFF) << 8) | (b[3] & 0xFF);
+    }
+
+    /** Builds a /prefix netmask as a 32-bit int (prefix 0 → 0.0.0.0). */
+    private static int maskFor(int prefix) {
+        return prefix == 0 ? 0 : -1 << (32 - prefix);
+    }
+
 }
