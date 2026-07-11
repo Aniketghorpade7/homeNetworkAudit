@@ -1,0 +1,164 @@
+{
+  "rules": [
+    {
+      "port": 21,
+      "service": "ftp",
+      "severity": "HIGH",
+      "title": "FTP exposed",
+      "explanation": "FTP sends usernames, passwords, and files in clear text, so anyone on the network can read them.",
+      "remediation": "Disable FTP. Use SFTP or SCP (over SSH) for file transfer instead."
+    },
+    {
+      "port": 22,
+      "service": "ssh",
+      "severity": "LOW",
+      "title": "SSH remote access available",
+      "explanation": "SSH is encrypted and generally safe, but an exposed SSH port can be brute-forced if it allows password login.",
+      "remediation": "Prefer key-based authentication, disable root login, and consider a tool like fail2ban."
+    },
+    {
+      "port": 23,
+      "service": "telnet",
+      "severity": "CRITICAL",
+      "title": "Telnet exposed",
+      "explanation": "Telnet transmits everything, including your password, in plain text and has no meaningful security. It is obsolete.",
+      "remediation": "Disable Telnet immediately and use SSH (port 22) for remote access."
+    },
+    {
+      "port": 25,
+      "service": "smtp",
+      "severity": "LOW",
+      "title": "SMTP mail service exposed",
+      "explanation": "An open mail (SMTP) port on a home network is unusual and, if misconfigured, can be abused to relay spam.",
+      "remediation": "If you are not intentionally running a mail server, disable this service."
+    },
+    {
+      "port": 53,
+      "service": "domain",
+      "severity": "INFO",
+      "title": "DNS service present",
+      "explanation": "Port 53 (DNS) is normal on a router or a Pi-hole style device. Informational unless this host should not be a DNS server.",
+      "remediation": "No action needed if this is your router or DNS server."
+    },
+    {
+      "port": 80,
+      "service": "http",
+      "severity": "LOW",
+      "title": "Unencrypted web service (HTTP)",
+      "explanation": "HTTP traffic, including any admin login, is unencrypted and can be read on the local network. Common on device admin panels.",
+      "remediation": "Use HTTPS where possible, and ensure any admin panel has a strong password."
+    },
+    {
+      "port": 110,
+      "service": "pop3",
+      "severity": "MEDIUM",
+      "title": "Plain-text mail retrieval (POP3)",
+      "explanation": "POP3 retrieves mail without encryption, exposing credentials and messages on the network.",
+      "remediation": "Use POP3S (995) or IMAPS (993) instead, or disable if unused."
+    },
+    {
+      "port": 111,
+      "service": "rpcbind",
+      "severity": "MEDIUM",
+      "title": "RPC portmapper exposed",
+      "explanation": "rpcbind can reveal available RPC services and has been abused in reflection/amplification attacks.",
+      "remediation": "Restrict or disable rpcbind if you are not using NFS or other RPC services."
+    },
+    {
+      "port": 135,
+      "service": "msrpc",
+      "severity": "MEDIUM",
+      "title": "Windows RPC exposed",
+      "explanation": "Microsoft RPC (135) exposes Windows services and is a frequent target on unpatched systems.",
+      "remediation": "Block port 135 from untrusted networks at the firewall and keep Windows updated."
+    },
+    {
+      "port": 139,
+      "service": "netbios-ssn",
+      "severity": "MEDIUM",
+      "title": "Legacy NetBIOS exposed",
+      "explanation": "NetBIOS session service is legacy Windows file/printer sharing and can leak host information.",
+      "remediation": "Disable NetBIOS over TCP/IP if not required; prefer SMB over 445 with modern settings."
+    },
+    {
+      "port": 143,
+      "service": "imap",
+      "severity": "MEDIUM",
+      "title": "Plain-text mail access (IMAP)",
+      "explanation": "IMAP without TLS exposes mailbox credentials and contents on the network.",
+      "remediation": "Use IMAPS (993) instead, or disable if unused."
+    },
+    {
+      "port": 443,
+      "service": "https",
+      "severity": "INFO",
+      "title": "Encrypted web service (HTTPS)",
+      "explanation": "HTTPS is the secure form of web traffic. Informational — this is generally what you want.",
+      "remediation": "No action needed. Ensure the certificate and admin password are sound."
+    },
+    {
+      "port": 445,
+      "service": "microsoft-ds",
+      "severity": "HIGH",
+      "title": "SMB file sharing exposed",
+      "explanation": "SMB (445) has a long history of wormable, critical vulnerabilities (e.g. EternalBlue) when exposed or unpatched.",
+      "remediation": "Restrict SMB to trusted hosts, disable SMBv1, and keep systems patched."
+    },
+    {
+      "port": 993,
+      "service": "imaps",
+      "severity": "INFO",
+      "title": "Encrypted mail access (IMAPS)",
+      "explanation": "IMAP over TLS is the secure form of mail access. Informational.",
+      "remediation": "No action needed."
+    },
+    {
+      "port": 995,
+      "service": "pop3s",
+      "severity": "INFO",
+      "title": "Encrypted mail retrieval (POP3S)",
+      "explanation": "POP3 over TLS is the secure form of mail retrieval. Informational.",
+      "remediation": "No action needed."
+    },
+    {
+      "port": 1723,
+      "service": "pptp",
+      "severity": "HIGH",
+      "title": "Insecure VPN (PPTP)",
+      "explanation": "PPTP VPN uses broken encryption and is considered unsafe.",
+      "remediation": "Disable PPTP and use a modern VPN such as WireGuard or OpenVPN."
+    },
+    {
+      "port": 3306,
+      "service": "mysql",
+      "severity": "HIGH",
+      "title": "Database reachable on the network (MySQL)",
+      "explanation": "A database port open to the LAN lets other devices attempt to connect to or attack your data.",
+      "remediation": "Bind MySQL to localhost or restrict it by firewall; never expose databases to the general network."
+    },
+    {
+      "port": 3389,
+      "service": "ms-wbt-server",
+      "severity": "HIGH",
+      "title": "Remote Desktop exposed (RDP)",
+      "explanation": "RDP is a top target for brute-force and exploit attacks when reachable on the network.",
+      "remediation": "Restrict RDP to trusted hosts or a VPN, enable Network Level Authentication, and use strong passwords."
+    },
+    {
+      "port": 5900,
+      "service": "vnc",
+      "severity": "HIGH",
+      "title": "Remote desktop exposed (VNC)",
+      "explanation": "VNC is often unencrypted and weakly authenticated, potentially exposing full control of the machine.",
+      "remediation": "Tunnel VNC over SSH or a VPN, require a strong password, or disable it."
+    },
+    {
+      "port": 8080,
+      "service": "http-proxy",
+      "severity": "LOW",
+      "title": "Unencrypted web service (HTTP 8080)",
+      "explanation": "Port 8080 commonly hosts an unencrypted web app or admin console readable on the LAN.",
+      "remediation": "Use HTTPS and a strong password, or restrict access to this service."
+    }
+  ]
+}

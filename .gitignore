@@ -1,3 +1,15 @@
-# #files to ignore
-# *.md
-# *.txt
+# Gradle
+.gradle/
+build/
+
+#IntelliJ IDEA
+.idea/
+*.iml
+out/
+
+# OS
+.DS_Store
+
+# Generated audit reports (regenerated on every run)
+reports/*.md
+reports/*.json
